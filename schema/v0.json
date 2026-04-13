@@ -1,0 +1,201 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://acb-manifest.dev/schema/v0.json",
+  "title": "ACB Journal Entry",
+  "description": "A typed ACB entry that extends the ADJ common envelope. Two entry types: budget_committed and settlement_recorded. Both follow ADJ §3.0 so they can be appended to the same journals as ADJ entries and inherit hash chaining, replay verification, and append-only guarantees.",
+  "type": "object",
+  "required": ["entry_id", "entry_type", "deliberation_id", "timestamp"],
+  "properties": {
+    "entry_id": {
+      "type": "string",
+      "description": "Globally unique identifier for this entry. May use the adj_ prefix when stored in a shared ADJ-compatible journal.",
+      "pattern": "^(adj_|acb_)"
+    },
+    "entry_type": {
+      "type": "string",
+      "enum": ["budget_committed", "budget_cancelled", "settlement_recorded"],
+      "description": "ACB entry type discriminator"
+    },
+    "deliberation_id": {
+      "type": "string",
+      "description": "Links this entry to its ADP deliberation",
+      "pattern": "^dlb_"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the entry was written to the journal"
+    },
+    "prior_entry_hash": {
+      "type": ["string", "null"],
+      "description": "SHA-256 hash of the previous entry in the budget authority's journal, or null"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "entry_type": { "const": "budget_committed" } }
+      },
+      "then": {
+        "required": ["budget_id", "budget_authority", "denomination", "amount_total", "pricing", "settlement"],
+        "properties": {
+          "budget_id": {
+            "type": "string",
+            "description": "Globally unique identifier for the budget pool",
+            "pattern": "^bgt_"
+          },
+          "budget_authority": {
+            "type": "string",
+            "description": "DID of the principal authorizing the budget"
+          },
+          "posted_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the budget was committed (may equal timestamp)"
+          },
+          "denomination": {
+            "type": "object",
+            "required": ["unit"],
+            "properties": {
+              "unit": { "const": "EU", "description": "Energy units (the abstract ACB scalar)" },
+              "external_unit": { "type": "string", "description": "Off-protocol unit the EU is mapped to (e.g., USD, USDC)" },
+              "external_rate": { "type": "number", "minimum": 0, "description": "Conversion rate from EU to external_unit, fixed at posting time" },
+              "rate_source": { "type": "string", "description": "How the rate was set (default: fixed-at-posting)" }
+            }
+          },
+          "amount_total": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "description": "Total budget pool in EU"
+          },
+          "pricing": {
+            "type": "object",
+            "required": ["profile", "cheap_routine_rate", "expensive_routine_rate", "round_multiplier", "unlock_threshold"],
+            "properties": {
+              "profile": { "type": "string", "description": "Named pricing function (e.g., default-v0)" },
+              "cheap_routine_rate": { "type": "number", "minimum": 0 },
+              "expensive_routine_rate": { "type": "number", "minimum": 0 },
+              "round_multiplier": { "type": "number", "minimum": 1 },
+              "unlock_threshold": { "type": "number", "minimum": 0, "maximum": 1, "description": "Disagreement magnitude above which expensive routine engages" },
+              "habit_memory_discount": { "type": "string", "description": "Named discount function (e.g., default-v0)" }
+            }
+          },
+          "settlement": {
+            "type": "object",
+            "required": ["profile", "mode", "substrate_share", "epistemic_share", "unspent_returns_to"],
+            "properties": {
+              "profile": { "type": "string", "description": "Named contribution-scoring function" },
+              "mode": {
+                "type": "string",
+                "enum": ["immediate", "deferred", "two_phase"]
+              },
+              "outcome_window_seconds": { "type": "integer", "minimum": 0, "description": "Maximum wait for outcome before settling without one" },
+              "substrate_share": { "type": "number", "minimum": 0, "maximum": 1, "description": "Fraction of draw allocated to substrate providers" },
+              "epistemic_share": { "type": "number", "minimum": 0, "maximum": 1, "description": "Fraction allocated to agent identities (substrate + epistemic must = 1)" },
+              "unspent_returns_to": { "type": "string", "description": "DID receiving unspent remainder" }
+            }
+          },
+          "constraints": {
+            "type": "object",
+            "properties": {
+              "max_participants": { "type": "integer", "minimum": 1 },
+              "max_rounds": { "type": "integer", "minimum": 0 },
+              "irrevocable": { "type": "boolean" }
+            }
+          },
+          "signature": {
+            "type": "string",
+            "description": "Budget authority signature over the canonical serialization"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "entry_type": { "const": "budget_cancelled" } }
+      },
+      "then": {
+        "required": ["budget_id", "budget_authority", "reason", "signature"],
+        "properties": {
+          "budget_id": { "type": "string", "pattern": "^bgt_" },
+          "budget_authority": { "type": "string" },
+          "reason": { "type": "string", "description": "Free-form cancellation reason" },
+          "signature": { "type": "string" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "entry_type": { "const": "settlement_recorded" } }
+      },
+      "then": {
+        "required": [
+          "budget_id",
+          "settlement_profile",
+          "draw_total",
+          "amount_total",
+          "amount_returned_to_requester",
+          "substrate_distributions",
+          "epistemic_distributions",
+          "habit_discount_applied",
+          "unlock_triggered",
+          "disagreement_magnitude_initial",
+          "signature"
+        ],
+        "properties": {
+          "budget_id": { "type": "string", "pattern": "^bgt_" },
+          "settlement_profile": { "type": "string" },
+          "outcome_referenced": {
+            "type": ["string", "null"],
+            "description": "entry_id of the outcome_observed entry incorporated into this settlement, or null"
+          },
+          "draw_total": { "type": "number", "minimum": 0, "description": "Total amount drawn from the budget" },
+          "amount_total": { "type": "number", "exclusiveMinimum": 0, "description": "Original budget amount (echoed for self-containment)" },
+          "amount_returned_to_requester": { "type": "number", "minimum": 0 },
+          "substrate_distributions": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/substrate_distribution" }
+          },
+          "epistemic_distributions": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/epistemic_distribution" }
+          },
+          "habit_discount_applied": { "type": "number", "minimum": 0, "maximum": 1 },
+          "unlock_triggered": { "type": "boolean" },
+          "disagreement_magnitude_initial": { "type": "number", "minimum": 0, "maximum": 1 },
+          "signature": { "type": "string" }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "substrate_distribution": {
+      "type": "object",
+      "required": ["recipient", "amount", "basis"],
+      "properties": {
+        "recipient": { "type": "string", "description": "DID of the substrate provider" },
+        "amount": { "type": "number", "minimum": 0 },
+        "basis": { "type": "string", "description": "How the amount was computed (e.g., cycles, fixed)" },
+        "report_ref": { "type": "string", "description": "URI of the substrate cycle report" }
+      }
+    },
+    "epistemic_distribution": {
+      "type": "object",
+      "required": ["recipient", "amount"],
+      "properties": {
+        "recipient": { "type": "string", "description": "DID of the participating agent" },
+        "amount": { "type": "number", "minimum": 0 },
+        "contribution_breakdown": {
+          "type": "object",
+          "properties": {
+            "base_share": { "type": "number", "minimum": 0 },
+            "falsification_bonus": { "type": "number", "minimum": 0 },
+            "load_bearing_bonus": { "type": "number", "minimum": 0 },
+            "outcome_correctness_bonus": { "type": "number", "minimum": 0 },
+            "dissent_quality_penalty": { "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    }
+  }
+}
