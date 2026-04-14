@@ -1,6 +1,6 @@
 {
-  "name": "acb-validate",
-  "version": "0.1.0",
+  "name": "@ai-manifests/acb-validate",
+  "version": "0.3.0",
   "description": "Validate ACB budget and settlement entries and audit settlement arithmetic against deliberation records",
   "type": "module",
   "bin": {

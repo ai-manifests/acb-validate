@@ -5,7 +5,7 @@ Validate [ACB](https://acb-manifest.dev) budget and settlement entries, audit se
 ## Install
 
 ```bash
-npm install -g acb-validate
+npm install -g @ai-manifests/acb-validate
 ```
 
 ## Usage
@@ -75,7 +75,7 @@ import {
   computeCheapDraw,
   computeExpensiveDraw,
   selectRoutine,
-} from 'acb-validate';
+} from '@ai-manifests/acb-validate';
 
 const result = validateEntry(budgetEntry);
 const recordResult = validateBudgetRecord(allEntries);
