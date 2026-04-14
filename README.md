@@ -110,3 +110,7 @@ acb-validate --record ./journal/
 ## Status
 
 **v0.1** — Validates against ACB spec v0 (draft, pre-implementation).
+
+## License
+
+Apache-2.0 — see [`LICENSE`](LICENSE) for the full license text and [`NOTICE`](NOTICE) for attribution.
