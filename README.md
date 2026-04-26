@@ -1,5 +1,11 @@
 # acb-validate
 
+[![npm](https://img.shields.io/npm/v/@ai-manifests/acb-validate.svg?label=npm)](https://www.npmjs.com/package/@ai-manifests/acb-validate)
+[![Downloads](https://img.shields.io/npm/dm/@ai-manifests/acb-validate.svg)](https://www.npmjs.com/package/@ai-manifests/acb-validate)
+[![Node](https://img.shields.io/badge/node-20%2B-blue.svg)](https://nodejs.org/)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![Spec](https://img.shields.io/badge/spec-acb--manifest.dev-informational)](https://acb-manifest.dev)
+
 Validate [ACB](https://acb-manifest.dev) budget and settlement entries, audit settlement arithmetic against deliberation records, and re-price deliberations against a posted budget.
 
 ## Install
