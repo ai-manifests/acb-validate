@@ -34,7 +34,7 @@
   "homepage": "https://acb-manifest.dev",
   "repository": {
     "type": "git",
-    "url": "https://git.marketally.com/ai-manifests/acb-validate"
+    "url": "https://github.com/ai-manifests/acb-validate"
   },
   "dependencies": {
     "ajv": "^8.17.0",
